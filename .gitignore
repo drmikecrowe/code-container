@@ -1,0 +1,12 @@
+.claude/*
+.npm/*
+pip/*
+.local/*
+container.claude.json
+
+!.claude/.gitkeep
+!.npm/.gitkeep
+!pip/.gitkeep
+!.local/.gitkeep
+
+.dockerignore
