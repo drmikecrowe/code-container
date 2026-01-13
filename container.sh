@@ -135,6 +135,7 @@ start_container() {
         print_info "Container '$container_name' is already running"
         print_info "Attaching to container..."
         docker exec -it -w "/root/$project_name" "$container_name" /bin/bash
+        docker stop "$container_name"
         return
     fi
     
@@ -143,6 +144,7 @@ start_container() {
         print_info "Starting existing container: $container_name"
         docker start "$container_name"
         docker exec -it -w "/root/$project_name" "$container_name" /bin/bash
+        docker stop "$container_name"
         return
     fi
     
@@ -162,6 +164,8 @@ start_container() {
         -v "$HOME/.gitconfig:/root/.gitconfig:ro" \
         -v "$HOME/.ssh:/root/.ssh:ro" \
         "${IMAGE_NAME}:${IMAGE_TAG}"
+    
+    docker stop "$container_name"
     
     print_success "Container session ended"
 }
