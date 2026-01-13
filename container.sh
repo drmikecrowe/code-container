@@ -150,8 +150,6 @@ start_container() {
     print_info "Creating new container: $container_name"
     print_info "Project: $project_path -> ~/$(basename "$project_path")"
     
-    echo "Script dir: $SCRIPT_DIR"
-    
     docker run -it \
         --name "$container_name" \
         -w "/root/$project_name" \
