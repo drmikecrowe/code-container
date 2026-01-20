@@ -134,7 +134,7 @@ start_container() {
     if container_running "$container_name"; then
         print_info "Container '$container_name' is already running"
         print_info "Attaching to container..."
-        docker exec -it -w "/root/$project_name" "$container_name" /bin/bash
+        docker exec -it -e TERM -w "/root/$project_name" "$container_name" /bin/bash
         docker stop "$container_name"
         return
     fi
@@ -143,7 +143,7 @@ start_container() {
     if container_exists "$container_name"; then
         print_info "Starting existing container: $container_name"
         docker start "$container_name"
-        docker exec -it -w "/root/$project_name" "$container_name" /bin/bash
+        docker exec -it -e TERM -w "/root/$project_name" "$container_name" /bin/bash
         docker stop "$container_name"
         return
     fi
@@ -154,6 +154,7 @@ start_container() {
     
     docker run -it \
         --name "$container_name" \
+        -e TERM \
         -w "/root/$project_name" \
         -v "$project_path:/root/$project_name" \
         -v "$SCRIPT_DIR/.claude:/root/.claude" \
