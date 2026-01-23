@@ -13,16 +13,17 @@ Isolated Docker environment for running Claude Code on projects with full system
 
 - **Base**: Ubuntu 24.04 LTS with build essentials
 - **Runtimes**: Node.js 22 LTS (via NVM), Python 3 with pip
-- **Tools**: Claude Code, git, curl, wget
+- **Tools**: Claude Code, Opencode, git, curl, wget
 - **Mounts**: `~/.gitconfig`, `~/.ssh` (read-only from host)
 - **Shared**: Claude history, npm cache, pip cache
 
 ## Initial Setup
 
-### 1. Configure Claude
+### 1. Configure Claude and Opencode
 
 ```bash
 cp ~/.claude.json container.claude.json
+cp ~/.config/opencode/config.json container.opencode.json
 ```
 
 ### 2. Build Docker Image
