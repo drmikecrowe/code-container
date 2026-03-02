@@ -299,6 +299,7 @@ PROJECT_PATH=$(cd "$PROJECT_PATH" 2>/dev/null && pwd || echo "$PROJECT_PATH")
 # Handle operations
 if [ "$BUILD_FLAG" = true ]; then
     build_image
+    exit 0
 fi
 
 if [ "$STOP_FLAG" = true ]; then
