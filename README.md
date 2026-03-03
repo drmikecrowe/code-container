@@ -29,12 +29,17 @@ ln -s "$(pwd)/container.sh" /usr/local/bin/container
 Copy configurations into this repo (shared across all containers):
 
 ```bash
+# Script to copy harness configs
+./copy-configs.sh
+```
+
+Or if copying manually:
+
+```bash
 # OpenCode
 cp -R ~/.config/opencode ./.opencode
-
 # Codex
 cp -R ~/.codex ./.codex
-
 # Claude Code
 cp -R ~/.claude ./.claude && cp ~/.claude.json container.claude.json
 ```
