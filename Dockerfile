@@ -34,9 +34,6 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | b
     && nvm alias default ${NODE_VERSION} \
     && ln -sf "$NVM_DIR/versions/node/$(nvm current)/bin/"* /usr/local/bin/
 
-# Add NVM to PATH for interactive shells
-ENV PATH="${NVM_DIR}/versions/node/default/bin:${PATH}"
-
 RUN apt-get update \
     && apt-get install -y \
         python3 \
