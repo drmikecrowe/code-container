@@ -21,6 +21,29 @@ SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 IMAGE_NAME="code"
 IMAGE_TAG="latest"
 
+# Container launch command; modify to add additional mounts
+run_new_container() {
+    local container_name="$1"
+    local project_name="$2"
+    local project_path="$3"
+
+    docker run -it \
+        --name "$container_name" \
+        -e TERM \
+        -w "/root/$project_name" \
+        -v "$project_path:/root/$project_name" \
+        -v "$SCRIPT_DIR/.claude:/root/.claude" \
+        -v "$SCRIPT_DIR/container.claude.json:/root/.claude.json" \
+        -v "$SCRIPT_DIR/.codex:/root/.codex" \
+        -v "$SCRIPT_DIR/.opencode:/root/.config/opencode" \
+        -v "$SCRIPT_DIR/.npm:/root/.npm" \
+        -v "$SCRIPT_DIR/pip:/root/.cache/pip" \
+        -v "$SCRIPT_DIR/.local:/root/.local" \
+        -v "$HOME/.gitconfig:/root/.gitconfig:ro" \
+        -v "$HOME/.ssh:/root/.ssh:ro" \
+        "${IMAGE_NAME}:${IMAGE_TAG}"
+}
+
 # Function to print colored output
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -167,22 +190,8 @@ start_container() {
     # Create and start new container
     print_info "Creating new container: $container_name"
     print_info "Project: $project_path -> ~/$(basename "$project_path")"
-    
-    docker run -it \
-        --name "$container_name" \
-        -e TERM \
-        -w "/root/$project_name" \
-        -v "$project_path:/root/$project_name" \
-        -v "$SCRIPT_DIR/.claude:/root/.claude" \
-        -v "$SCRIPT_DIR/container.claude.json:/root/.claude.json" \
-        -v "$SCRIPT_DIR/.codex:/root/.codex" \
-        -v "$SCRIPT_DIR/.opencode:/root/.config/opencode" \
-        -v "$SCRIPT_DIR/.npm:/root/.npm" \
-        -v "$SCRIPT_DIR/pip:/root/.cache/pip" \
-        -v "$SCRIPT_DIR/.local:/root/.local" \
-        -v "$HOME/.gitconfig:/root/.gitconfig:ro" \
-        -v "$HOME/.ssh:/root/.ssh:ro" \
-        "${IMAGE_NAME}:${IMAGE_TAG}"
+
+    run_new_container "$container_name" "$project_name" "$project_path"
     
     docker stop "$container_name"
     
