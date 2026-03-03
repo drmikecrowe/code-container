@@ -1,8 +1,8 @@
 .claude/*
 .codex/*
 .opencode/*
-.npm/*
-pip/*
+.npm
+pip
 .local/*
 
 container.claude.json
@@ -10,8 +10,6 @@ container.claude.json
 !.claude/.gitkeep
 !.codex/.gitkeep
 !.opencode/.gitkeep
-!.npm/.gitkeep
-!pip/.gitkeep
 !.local/.gitkeep
 
 .dockerignore
