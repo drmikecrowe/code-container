@@ -14,7 +14,7 @@ The original project runs containers as root via Docker and uses NVM for Node.js
 - **Host username in container** — the container user matches your host username (build-time `ARG`), with home at `/container/$USER` to distinguish container sessions from host sessions
 - **Seamless Claude Code auth** — mounts `/etc/machine-id`, `~/.claude/`, and `~/.claude.json` so Claude Code sees the same machine identity and credentials as the host; no re-authentication needed
 - **Hardware auth passthrough** — 1Password SSH agent socket, GPG agent socket (for YubiKey SSH), GPG config, and YubiKey USB device passthrough
-- **mise instead of NVM** — manages Node, Python, pnpm, ripgrep, fd, and all CLI tools from a single config; installed tools include opencode, codex, gemini-cli, beads, gastown
+- **mise instead of NVM** — manages Node, Python, pnpm, and all CLI tools from a single config; core tools include opencode, codex, gemini-cli, beads, gastown, fd, ripgrep; additional tools selected via `extra-tools.txt`
 - **`--claude` / `--zai` flags** — launch directly into Claude Code (YOLO mode) or Claude with a Z.AI/GLM endpoint
 - **Non-blocking exit** — container stop runs in the background so your terminal returns immediately
 - **`--network host`** — simpler networking, especially useful for local dev servers
@@ -40,12 +40,7 @@ The original project runs containers as root via Docker and uses NVM for Node.js
   ln -s "$(pwd)/container.sh" /usr/local/bin/container
   ```
 
-2. **Copy Configurations**: Copy harness configs into this repo:
-  ```bash
-  ./copy-configs.sh
-  ```
-
-3. **Build Image**:
+2. **Build Image**:
   ```bash
   container --build
   ```
@@ -104,7 +99,22 @@ Then: `container --zai`
 
 ### Customization
 
-**Add packages** — edit `Dockerfile` and rebuild:
+**Add mise-managed tools** — on first build you'll be prompted to copy `extra-tools.default.txt` as your personal `extra-tools.txt`. Edit it to select which tools to install:
+```
+# Modern CLI replacements
+bat           # cat replacement
+eza           # ls replacement
+sd            # sed replacement
+
+# Git tools
+lazygit
+delta
+
+# etc — one tool per line, inline comments supported
+```
+`extra-tools.txt` is gitignored so your selections stay local. `extra-tools.default.txt` is the committed template listing all tools known to work with mise — treat it as a menu. Browse additional options with `mise registry`. Rebuild required after changes.
+
+**Add system packages** — edit `Dockerfile` and rebuild:
 ```dockerfile
 RUN apt-get update && apt-get install -y postgresql-client
 ```

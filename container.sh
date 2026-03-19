@@ -197,6 +197,19 @@ image_exists() {
 build_image() {
     print_info "Building container image: ${IMAGE_NAME}:${IMAGE_TAG}"
 
+    # Prompt to create extra-tools.txt from default if missing
+    if [ ! -f "$SCRIPT_DIR/extra-tools.txt" ]; then
+        print_warning "No extra-tools.txt found."
+        read -r -p "Copy from extra-tools.default.txt? [Y/n] " reply
+        if [[ "${reply:-Y}" =~ ^[Yy]$ ]]; then
+            cp "$SCRIPT_DIR/extra-tools.default.txt" "$SCRIPT_DIR/extra-tools.txt"
+            print_info "Copied. Edit $SCRIPT_DIR/extra-tools.txt to customize your tools."
+        else
+            touch "$SCRIPT_DIR/extra-tools.txt"
+            print_info "Created empty extra-tools.txt. No extra tools will be installed."
+        fi
+    fi
+
     # Build the image
     $CONTAINER_RUNTIME build -t "${IMAGE_NAME}:${IMAGE_TAG}" --build-arg USERNAME="$USER" "$SCRIPT_DIR"
 

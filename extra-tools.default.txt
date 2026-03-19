@@ -1,0 +1,26 @@
+# Extra mise-managed tools installed at image build time.
+# One tool per line. Rebuild with: container --build
+# Note: fd and ripgrep are already installed in the base image.
+
+# Modern CLI replacements
+bat           # cat replacement
+eza           # ls replacement
+sd            # sed replacement
+dua           # du replacement
+gping         # ping with graph
+
+# Data viewing/processing
+jq            # JSON processor
+jless         # JSON viewer
+glow          # markdown viewer
+hexyl         # hex viewer
+yq            # YAML/JSON processor
+
+# Git tools
+lazygit       # git TUI
+
+# Dev/code tools
+ast-grep      # AST-based code search
+ruff          # Python linter/formatter
+stylua        # Lua formatter
+markdownlint-cli2  # markdown linter

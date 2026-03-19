@@ -20,12 +20,8 @@ Setup: Do one step at a time. Do not overload the user with instructions.
    ln -s "$(pwd)/container.sh" /usr/local/bin/container
    ```
    Do not ask user to run with `sudo`. If insufficient permissions, find an alternative location on user's `$PATH` to link to.
-2. Do for user: Copy harness configs:
-   ```bash
-   ./copy-configs.sh
-   ```
-3. Do for user: Provide a list of included packages in `Dockerfile`. Then, ask user if they would like to add more packages into container environment. If yes, see `Add Packages/Dependencies` section below.
-4. Do for user: Build Docker image:
+2. Do for user: Provide a list of included packages in `Dockerfile`. Then, ask user if they would like to add more packages into container environment. If yes, see `Add Packages/Dependencies` section below.
+3. Do for user: Build Docker image:
    ```bash
    container --build
    ```
