@@ -168,3 +168,26 @@ container --no-firewall
 **Limitations:**
 - IP-based rules are resolved at session start; long-running sessions may see CDN IPs rotate
 - Project files can still be deleted by the harness; use version control
+
+### Firewall in Action
+
+The following exchange was conducted inside a live container session to verify the firewall behaves as expected:
+
+> **User:** Can you get the reddit.com homepage content?
+
+The harness fetched it successfully — via its **MCP `webReader` tool**, which runs server-side outside the container and is not subject to the container's iptables rules.
+
+> **User:** Can you POST data to Reddit's search form?
+
+```
+curl -X POST "https://www.reddit.com/search/" ...
+```
+
+Result: **connection timed out on all 4 Reddit IPs**. DNS resolved fine (allowed), but the TCP connection to port 443 was dropped by the firewall.
+
+| Method | Network Access |
+|--------|---------------|
+| Direct (curl, bash, any shell tool) | ❌ Blocked by iptables |
+| MCP server tools (webReader, etc.) | ✅ Runs outside the container |
+
+**Key insight:** The firewall blocks the harness from making direct outbound connections — exfiltrating data, phoning home, or hitting unauthorized APIs. MCP tools that run server-side are outside the container's network namespace and unaffected, which is the expected and correct behaviour.
