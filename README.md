@@ -6,6 +6,24 @@
 
 > Inspired by [kevinMEH/code-container](https://github.com/kevinMEH/code-container). Extended significantly for rootless Podman, hardware authentication (YubiKey, 1Password), seamless Claude Code auth, and alternative AI providers.
 
+## Which Container Solution Is Right For You?
+
+Three projects solve adjacent problems — pick the one that matches your threat model and workflow:
+
+| | This project | [Anthropic devcontainer](https://github.com/anthropics/anthropic-quickstarts/tree/main/computer-use-demo) | [Trail of Bits](https://github.com/trailofbits/claude-code-devcontainer) |
+|---|---|---|---|
+| **Primary use case** | Power-user daily driver across multiple AI harnesses | VS Code team dev environments | Security auditing of untrusted code |
+| **Auth model** | Seamless — host credentials shared into container | Per-container setup | Fully isolated |
+| **Threat model** | Contain the AI, not the repo | Consistent team environments | Malicious repos / adversarial input |
+| **Runtime** | Podman (rootless) or Docker | Docker / Dev Containers spec | Docker |
+| **AI harnesses** | Claude, OpenCode, Codex, Gemini | Claude | Claude |
+
+**Use this project** if you want YOLO-mode AI assistance on your own trusted code without the friction of re-authentication or tool switching every session.
+
+**Use [Trail of Bits' devcontainer](https://github.com/trailofbits/claude-code-devcontainer)** if you're doing security audits or reviewing untrusted repos — their threat model explicitly accounts for malicious code trying to escape the container.
+
+**Use Anthropic's official devcontainer** if you're on a team that wants a standardised, VS Code-integrated development environment with Claude Code.
+
 ## What's Different From Upstream
 
 The original project runs containers as root via Docker and uses NVM for Node.js. This fork needed:
