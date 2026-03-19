@@ -23,7 +23,8 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     vim \
     tree \
-    gnupg
+    gnupg \
+    iptables
 
 # Install 1Password CLI and desktop app (for SSH signing with op-ssh-sign)
 RUN curl -sS https://downloads.1password.com/linux/keys/1password.asc | \

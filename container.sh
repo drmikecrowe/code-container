@@ -21,6 +21,7 @@ SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 IMAGE_NAME="code"
 IMAGE_TAG="latest"
 CONTAINER_HOME="/container/$USER"
+NO_FIREWALL=false
 
 # Detect container runtime (prefer podman)
 if command -v podman >/dev/null 2>&1; then
@@ -101,7 +102,7 @@ start_new_container() {
     $CONTAINER_RUNTIME run -d \
         --name "$container_name" \
         --userns=keep-id \
-        --network host \
+        --cap-add NET_ADMIN \
         -e TERM=xterm-256color \
         -w "$CONTAINER_HOME/$project_relpath" \
         -v "$project_path:$CONTAINER_HOME/$project_relpath" \
@@ -112,6 +113,7 @@ start_new_container() {
         -v "$SCRIPT_DIR/.npm:$CONTAINER_HOME/.npm" \
         -v "$SCRIPT_DIR/pip:$CONTAINER_HOME/.cache/pip" \
         -v "$HOME/.ssh:$CONTAINER_HOME/.ssh:ro" \
+        -v "$SCRIPT_DIR/egress-firewall.sh:/usr/local/sbin/egress-firewall:ro" \
         $optional_args \
         "${IMAGE_NAME}:${IMAGE_TAG}" \
         sleep infinity
@@ -153,6 +155,7 @@ Options:
     --clean         Remove all stopped Code containers
     --claude        Start Claude (in YOLO mode)
     --zai           Start Claude with Z.AI/GLM models (requires ~/.zai.json)
+    --no-firewall   Disable egress firewall (unrestricted network access)
 
 Examples:
     $0                          # Uses current directory
@@ -250,6 +253,27 @@ stop_container_if_last_session() {
     fi
 }
 
+# Apply egress firewall inside container (idempotent via /run flag file)
+apply_firewall() {
+    local container_name="$1"
+    shift
+    local extra_hosts=("$@")
+
+    if [ "$NO_FIREWALL" = "true" ]; then
+        return
+    fi
+
+    # Skip if already applied this session (/run is tmpfs, cleared on container stop)
+    if $CONTAINER_RUNTIME exec "$container_name" test -f /run/egress-firewall-active 2>/dev/null; then
+        return
+    fi
+
+    print_info "Applying egress firewall..."
+    $CONTAINER_RUNTIME exec --user root "$container_name" \
+        /bin/bash /usr/local/sbin/egress-firewall "${extra_hosts[@]}" \
+        || print_warning "Egress firewall failed to apply (missing NET_ADMIN?)"
+}
+
 # Function to start/create container
 start_container() {
     local project_path="$1"
@@ -289,6 +313,15 @@ start_container() {
     if ! image_exists; then
         print_warning "Container image not found. Building..."
         build_image
+    fi
+
+    # Collect extra egress hosts (always whitelist Z.AI endpoint if configured)
+    local extra_egress_hosts=()
+    if [ -f "$HOME/.zai.json" ] && command -v jq >/dev/null 2>&1; then
+        local zai_url zai_host
+        zai_url=$(jq -r '.apiUrl // ""' "$HOME/.zai.json" 2>/dev/null)
+        zai_host=$(echo "$zai_url" | sed 's|https\?://||' | cut -d'/' -f1)
+        [ -n "$zai_host" ] && extra_egress_hosts+=("$zai_host")
     fi
 
     # Determine the command to run
@@ -344,6 +377,7 @@ start_container() {
     if container_running "$container_name"; then
         print_info "Container '$container_name' is already running"
         print_info "Attaching to container..."
+        apply_firewall "$container_name" "${extra_egress_hosts[@]+"${extra_egress_hosts[@]}"}"
         $CONTAINER_RUNTIME exec -it $exec_env -w "$CONTAINER_HOME/$project_relpath" "$container_name" bash -l -c "$mise_init && $exec_cmd"
         stop_container_if_last_session "$container_name" "$project_relpath"
         return
@@ -353,6 +387,7 @@ start_container() {
     if container_exists "$container_name"; then
         print_info "Starting existing container: $container_name"
         $CONTAINER_RUNTIME start "$container_name"
+        apply_firewall "$container_name" "${extra_egress_hosts[@]+"${extra_egress_hosts[@]}"}"
         $CONTAINER_RUNTIME exec -it $exec_env -w "$CONTAINER_HOME/$project_relpath" "$container_name" bash -l -c "$mise_init && $exec_cmd"
         stop_container_if_last_session "$container_name" "$project_relpath"
         return
@@ -363,6 +398,7 @@ start_container() {
     print_info "Project: $project_path -> ~/$project_relpath"
 
     start_new_container "$container_name" "$project_relpath" "$project_path"
+    apply_firewall "$container_name" "${extra_egress_hosts[@]+"${extra_egress_hosts[@]}"}"
 
     $CONTAINER_RUNTIME exec -it $exec_env -w "$CONTAINER_HOME/$project_relpath" "$container_name" bash -l -c "$mise_init && $exec_cmd"
 
@@ -473,6 +509,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --zai)
             ZAI_FLAG=true
+            shift
+            ;;
+        --no-firewall)
+            NO_FIREWALL=true
             shift
             ;;
         *)

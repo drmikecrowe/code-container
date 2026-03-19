@@ -17,7 +17,7 @@ The original project runs containers as root via Docker and uses NVM for Node.js
 - **mise instead of NVM** — manages Node, Python, pnpm, and all CLI tools from a single config; core tools include opencode, codex, gemini-cli, beads, gastown, fd, ripgrep; additional tools selected via `extra-tools.txt`
 - **`--claude` / `--zai` flags** — launch directly into Claude Code (YOLO mode) or Claude with a Z.AI/GLM endpoint
 - **Non-blocking exit** — container stop runs in the background so your terminal returns immediately
-- **`--network host`** — simpler networking, especially useful for local dev servers
+- **Egress firewall** — iptables whitelist blocks all outbound traffic except approved endpoints (Anthropic, GitHub, npm, pip, mise, Z.AI); applied at every session start via `--cap-add NET_ADMIN`; `--no-firewall` to opt out
 - **XDG-aware git config** — checks `~/.config/git` before `~/.gitconfig`
 
 ## Quickstart
@@ -147,6 +147,24 @@ You and your harness can work on the same project simultaneously.
 - Project isolation prevents cross-contamination
 - Host filesystem access limited to explicitly mounted directories
 
+### Egress Firewall
+
+Every container session starts with an iptables egress firewall that blocks all outbound traffic except an explicit whitelist. This closes the primary exfiltration vector identified in agentic AI security research.
+
+**Whitelisted by default:**
+- `api.anthropic.com`, `statsig.anthropic.com` — Claude API
+- `github.com` and related domains — git, gh CLI, releases
+- `registry.npmjs.org` — npm
+- `pypi.org`, `files.pythonhosted.org` — pip
+- `mise.jdx.dev` — mise tool manager
+- Host gateway — local services on the host machine
+- Z.AI endpoint from `~/.zai.json` — automatically added when present
+
+To add more domains, edit `egress-firewall.sh`. To disable for a session:
+```bash
+container --no-firewall
+```
+
 **Limitations:**
-- Network access is unrestricted (`--network host`); data can still be exfiltrated
-- Project files can be deleted by the harness; use version control
+- IP-based rules are resolved at session start; long-running sessions may see CDN IPs rotate
+- Project files can still be deleted by the harness; use version control
