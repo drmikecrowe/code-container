@@ -2,7 +2,9 @@
   <img src=".github/README/banner.png" alt="Banner" />
 </p>
 
-#### Code Container: Isolated container environment for autonomous coding harnesses (Claude Code, OpenCode, Codex, Gemini).
+#### Code Container: Isolated container environment for autonomous coding harnesses (Claude Code, OpenCode, Codex, Gemini)
+
+You can read my [announcement here](https://mikesshinyobjects.tech/posts/2026/2026-03-20-code-container-isolating-ai-harnesses/)
 
 > Inspired by [kevinMEH/code-container](https://github.com/kevinMEH/code-container). Extended significantly for rootless Podman, hardware authentication (YubiKey, 1Password), seamless Claude Code auth, and alternative AI providers.
 
@@ -15,13 +17,13 @@
 
 Three projects solve adjacent problems — pick the one that matches your threat model and workflow:
 
-| | This project | [Anthropic devcontainer](https://github.com/anthropics/anthropic-quickstarts/tree/main/computer-use-demo) | [Trail of Bits](https://github.com/trailofbits/claude-code-devcontainer) |
-|---|---|---|---|
-| **Primary use case** | Power-user daily driver across multiple AI harnesses | VS Code team dev environments | Security auditing of untrusted code |
-| **Auth model** | Seamless — host credentials shared into container | Per-container setup | Fully isolated |
-| **Threat model** | Contain the AI, not the repo | Consistent team environments | Malicious repos / adversarial input |
-| **Runtime** | Podman (rootless) or Docker | Docker / Dev Containers spec | Docker |
-| **AI harnesses** | Claude, OpenCode, Codex, Gemini | Claude | Claude |
+|                      | This project                                         | [Anthropic devcontainer](https://github.com/anthropics/anthropic-quickstarts/tree/main/computer-use-demo) | [Trail of Bits](https://github.com/trailofbits/claude-code-devcontainer) |
+| -------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Primary use case** | Power-user daily driver across multiple AI harnesses | VS Code team dev environments                                                                             | Security auditing of untrusted code                                      |
+| **Auth model**       | Seamless — host credentials shared into container    | Per-container setup                                                                                       | Fully isolated                                                           |
+| **Threat model**     | Contain the AI, not the repo                         | Consistent team environments                                                                              | Malicious repos / adversarial input                                      |
+| **Runtime**          | Podman (rootless) or Docker                          | Docker / Dev Containers spec                                                                              | Docker                                                                   |
+| **AI harnesses**     | Claude, OpenCode, Codex, Gemini                      | Claude                                                                                                    | Claude                                                                   |
 
 **Use this project** if you want YOLO-mode AI assistance on your own trusted code without the friction of re-authentication or tool switching every session.
 
@@ -53,16 +55,19 @@ The original project runs containers as root via Docker and uses NVM for Node.js
 ### Install
 
 One command — clones the repo and puts `container` on your PATH:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/drmikecrowe/code-container/main/install.sh | bash
 ```
 
 The installer is fully verbose and shows every step. It:
+
 1. Clones to `~/.local/share/code-container` (or pulls latest if already installed)
 2. Symlinks `container.sh` as `container` into `~/.local/bin` (if on PATH) or `/usr/local/bin` (via sudo)
 
 > [!Tip]
 > Don't want to install manually? Ask your AI harness to set up for you:
+>
 > ```
 > Help me setup `container`
 > ```
@@ -88,6 +93,7 @@ The image is built with your host username baked in (`--build-arg USERNAME=$USER
 ## Usage
 
 Navigate to any project and run `container` to mount project and enter container.
+
 ```bash
 cd /path/to/project
 container                    # Enter container shell
@@ -96,6 +102,7 @@ container --zai              # Enter Claude with Z.AI/GLM models
 ```
 
 Inside the container:
+
 ```bash
 claude                       # Claude Code (already authenticated)
 opencode                     # Start OpenCode
@@ -122,6 +129,7 @@ container --clean            # Remove all stopped containers
 ## Z.AI / GLM Models
 
 Create `~/.zai.json` on your host:
+
 ```json
 {
   "apiUrl": "https://your-endpoint",
@@ -137,6 +145,7 @@ Then: `container --zai`
 ### Customization
 
 **Add mise-managed tools** — on first build you'll be prompted to copy `extra-tools.default.txt` as your personal `extra-tools.txt`. Edit it to select which tools to install:
+
 ```
 # Modern CLI replacements
 bat           # cat replacement
@@ -149,14 +158,17 @@ delta
 
 # etc — one tool per line, inline comments supported
 ```
+
 `extra-tools.txt` is gitignored so your selections stay local. `extra-tools.default.txt` is the committed template listing all tools known to work with mise — treat it as a menu. Browse additional options with `mise registry`. Rebuild required after changes.
 
 **Add system packages** — edit `Dockerfile` and rebuild:
+
 ```dockerfile
 RUN apt-get update && apt-get install -y postgresql-client
 ```
 
 **Add mount points** — edit `start_new_container()` in `container.sh`:
+
 ```bash
 -v "$HOME/.config/something:/container/$USER/.config/something:ro"
 ```
@@ -189,6 +201,7 @@ You and your harness can work on the same project simultaneously.
 Every container session starts with an iptables egress firewall that blocks all outbound traffic except an explicit whitelist. This closes the primary exfiltration vector identified in agentic AI security research.
 
 **Whitelisted by default:**
+
 - `api.anthropic.com`, `statsig.anthropic.com` — Claude API
 - `github.com` and related domains — git, gh CLI, releases
 - `registry.npmjs.org` — npm
@@ -198,11 +211,13 @@ Every container session starts with an iptables egress firewall that blocks all 
 - Z.AI endpoint from `~/.zai.json` — automatically added when present
 
 To add more domains, edit `egress-firewall.sh`. To disable for a session:
+
 ```bash
 container --no-firewall
 ```
 
 **Limitations:**
+
 - IP-based rules are resolved at session start; long-running sessions may see CDN IPs rotate
 - Project files can still be deleted by the harness; use version control
 
@@ -222,9 +237,9 @@ curl -X POST "https://www.reddit.com/search/" ...
 
 Result: **connection timed out on all 4 Reddit IPs**. DNS resolved fine (allowed), but the TCP connection to port 443 was dropped by the firewall.
 
-| Method | Network Access |
-|--------|---------------|
-| Direct (curl, bash, any shell tool) | ❌ Blocked by iptables |
-| MCP server tools (webReader, etc.) | ✅ Runs outside the container |
+| Method                              | Network Access                |
+| ----------------------------------- | ----------------------------- |
+| Direct (curl, bash, any shell tool) | ❌ Blocked by iptables        |
+| MCP server tools (webReader, etc.)  | ✅ Runs outside the container |
 
 **Key insight:** The firewall blocks the harness from making direct outbound connections — exfiltrating data, phoning home, or hitting unauthorized APIs. MCP tools that run server-side are outside the container's network namespace and unaffected, which is the expected and correct behaviour.
