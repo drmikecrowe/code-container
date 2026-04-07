@@ -136,6 +136,8 @@ start_new_container() {
         -v "$SCRIPT_DIR/.codex:$CONTAINER_HOME/.codex" \
         -v "$SCRIPT_DIR/.opencode:$CONTAINER_HOME/.config/opencode" \
         -v "$SCRIPT_DIR/.gemini:$CONTAINER_HOME/.gemini" \
+        -v "$SCRIPT_DIR/.headroom:$CONTAINER_HOME/.headroom" \
+        -v "$SCRIPT_DIR/.cache/huggingface:$CONTAINER_HOME/.cache/huggingface" \
         -v "$SCRIPT_DIR/.npm:$CONTAINER_HOME/.npm" \
         -v "$SCRIPT_DIR/pip:$CONTAINER_HOME/.cache/pip" \
         -v "$HOME/.ssh:$CONTAINER_HOME/.ssh:ro" \
@@ -175,22 +177,32 @@ Arguments:
 Options:
     -h, --help      Show this help message
     -b, --build     Force rebuild the container image
+    --rebuild       Remove current container and rebuild image
     -s, --stop      Stop the container for this project
     -r, --remove    Remove the container for this project
     -l, --list      List all Code containers
     --clean         Remove all stopped Code containers
-    --claude        Start Claude (in YOLO mode)
-    --zai           Start Claude with Z.AI/GLM models (requires ~/.zai.json)
+    --headroom      Enable Headroom context compression (wraps harness)
     --no-firewall   Disable egress firewall (unrestricted network access)
+
+Harnesses (launch directly into an AI harness):
+    claude          Start Claude Code (YOLO mode)
+    codex           Start OpenAI Codex
+    opencode        Start OpenCode
+    gemini          Start Gemini CLI
+    claude-zai           Start Claude with Z.AI/GLM models (requires ~/.zai.json)
 
 Examples:
     $0                          # Uses current directory
     $0 /Users/kevin/my-project
     $0 --build
+    $0 --rebuild
     $0 --stop
     $0 --list
-    $0 --claude                  # Start Claude in YOLO mode
-    $0 --zai                     # Start with Z.AI models
+    $0 claude                    # Start Claude in YOLO mode
+    $0 claude-zai                     # Start with Z.AI models
+    $0 --headroom claude         # Claude with Headroom compression
+    $0 --headroom claude-zai          # Z.AI models with Headroom compression
 
 EOF
     exit 0
@@ -240,7 +252,11 @@ build_image() {
     fi
 
     # Build the image
-    $CONTAINER_RUNTIME build -t "${IMAGE_NAME}:${IMAGE_TAG}" --build-arg USERNAME="$USER" "$SCRIPT_DIR"
+    local build_args="--build-arg USERNAME=$USER"
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        build_args="$build_args --build-arg GITHUB_TOKEN=$GITHUB_TOKEN"
+    fi
+    $CONTAINER_RUNTIME build -t "${IMAGE_NAME}:${IMAGE_TAG}" $build_args "$SCRIPT_DIR"
 
     print_success "Container image built successfully"
 }
@@ -303,8 +319,8 @@ apply_firewall() {
 # Function to start/create container
 start_container() {
     local project_path="$1"
-    local use_claude="${2:-false}"
-    local use_zai="${3:-false}"
+    local harness="${2:-}"
+    local use_headroom="${3:-false}"
     local container_name=$(generate_container_name "$project_path")
     # Use relative path for consistent session storage across /home and /data
     local project_relpath
@@ -328,6 +344,8 @@ start_container() {
     mkdir -p "$SCRIPT_DIR/pip"
     mkdir -p "$SCRIPT_DIR/.local"
     mkdir -p "$SCRIPT_DIR/.opencode"
+    mkdir -p "$SCRIPT_DIR/.headroom"
+    mkdir -p "$SCRIPT_DIR/.cache/huggingface"
     mkdir -p "$SCRIPT_DIR/.gemini"
 
     if [ ! -f "$SCRIPT_DIR/container.claude.json" ]; then
@@ -355,22 +373,16 @@ start_container() {
     local exec_env="-e TERM=xterm-256color"
     local mise_init="source ~/.bashrc && mise trust -a 2>/dev/null"
 
-    # --claude flag: start regular claude in YOLO mode
-    if [ "$use_claude" = "true" ]; then
-        exec_cmd="claude --dangerously-skip-permissions"
-    fi
-
-    # --zai flag: start claude with Z.AI/GLM models in YOLO mode
-    if [ "$use_zai" = "true" ]; then
+    # Set up Z.AI environment if selected
+    if [ "$harness" = "zai" ]; then
         local zai_config="$HOME/.zai.json"
         if [ ! -f "$zai_config" ]; then
             print_error "Z.AI config not found: $zai_config"
             exit 1
         fi
 
-        # Read Z.AI config and build environment variables
         if ! command -v jq >/dev/null 2>&1; then
-            print_error "jq is required for --zai option"
+            print_error "jq is required for zai harness"
             exit 1
         fi
 
@@ -389,14 +401,32 @@ start_container() {
         local key_hint="${api_key:0:4}...${api_key: -4}"
         print_info "Z.AI: endpoint=$api_url | haiku=$haiku_model | sonnet=$sonnet_model | opus=$opus_model | key=$key_hint"
 
-        exec_env="$exec_env"
         exec_env="$exec_env -e ANTHROPIC_BASE_URL=$api_url"
         exec_env="$exec_env -e ANTHROPIC_AUTH_TOKEN=$api_key"
         exec_env="$exec_env -e ANTHROPIC_DEFAULT_HAIKU_MODEL=$haiku_model"
         exec_env="$exec_env -e ANTHROPIC_DEFAULT_SONNET_MODEL=$sonnet_model"
         exec_env="$exec_env -e ANTHROPIC_DEFAULT_OPUS_MODEL=$opus_model"
+    fi
 
-        exec_cmd="claude --dangerously-skip-permissions"
+    # Build harness command
+    case "$harness" in
+        claude|zai)
+            exec_cmd="claude --dangerously-skip-permissions"
+            ;;
+        codex)
+            exec_cmd="codex"
+            ;;
+        opencode)
+            exec_cmd="opencode"
+            ;;
+        gemini)
+            exec_cmd="gemini"
+            ;;
+    esac
+
+    # Wrap with headroom if requested
+    if [ "$use_headroom" = "true" ] && [ -n "$harness" ]; then
+        exec_cmd="headroom wrap $exec_cmd"
     fi
 
     # If container exists and is running, attach to it
@@ -496,12 +526,13 @@ clean_containers() {
 
 # Parse command line arguments
 BUILD_FLAG=false
+REBUILD_FLAG=false
 STOP_FLAG=false
 REMOVE_FLAG=false
 LIST_FLAG=false
 CLEAN_FLAG=false
-CLAUDE_FLAG=false
-ZAI_FLAG=false
+HEADROOM_FLAG=false
+HARNESS=""
 PROJECT_PATH=""
 
 while [[ $# -gt 0 ]]; do
@@ -511,6 +542,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -b|--build)
             BUILD_FLAG=true
+            shift
+            ;;
+        --rebuild)
+            REBUILD_FLAG=true
             shift
             ;;
         -s|--stop)
@@ -529,12 +564,28 @@ while [[ $# -gt 0 ]]; do
             CLEAN_FLAG=true
             shift
             ;;
-        --claude)
-            CLAUDE_FLAG=true
+        claude|--claude)
+            HARNESS="claude"
             shift
             ;;
-        --zai)
-            ZAI_FLAG=true
+        codex|--codex)
+            HARNESS="codex"
+            shift
+            ;;
+        opencode|--opencode)
+            HARNESS="opencode"
+            shift
+            ;;
+        gemini|--gemini)
+            HARNESS="gemini"
+            shift
+            ;;
+        claude-zai)
+            HARNESS="zai"
+            shift
+            ;;
+        --headroom)
+            HEADROOM_FLAG=true
             shift
             ;;
         --no-firewall)
@@ -578,6 +629,14 @@ if [ "$BUILD_FLAG" = true ]; then
     exit 0
 fi
 
+if [ "$REBUILD_FLAG" = true ]; then
+    if container_exists "$(generate_container_name "$PROJECT_PATH")"; then
+        remove_container "$PROJECT_PATH"
+    fi
+    build_image
+    exit 0
+fi
+
 if [ "$STOP_FLAG" = true ]; then
     stop_container "$PROJECT_PATH"
     exit 0
@@ -589,4 +648,4 @@ if [ "$REMOVE_FLAG" = true ]; then
 fi
 
 # Default operation: start container
-start_container "$PROJECT_PATH" "$CLAUDE_FLAG" "$ZAI_FLAG"
+start_container "$PROJECT_PATH" "$HARNESS" "$HEADROOM_FLAG"

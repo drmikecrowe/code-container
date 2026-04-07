@@ -37,6 +37,10 @@ RUN curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
 # Accept build-time username (defaults to ubuntu)
 ARG USERNAME=ubuntu
 
+# GitHub token to avoid API rate limits during mise tool installs
+ARG GITHUB_TOKEN=""
+ENV GITHUB_TOKEN=${GITHUB_TOKEN}
+
 # Rename ubuntu user and move home to /container/$USERNAME
 RUN mkdir -p /container && \
     usermod -l ${USERNAME} ubuntu && \
@@ -50,7 +54,7 @@ WORKDIR /container/${USERNAME}
 RUN curl -fsSL https://mise.run | bash
 ENV PATH="/container/${USERNAME}/.local/share/mise/shims:/container/${USERNAME}/.local/bin:${PATH}"
 
-# Configure mise tools
+# Configure mise core tools
 RUN mise settings set experimental true && \
     mise use -g \
         node@22 \
@@ -64,12 +68,19 @@ RUN mise settings set experimental true && \
         npm:@openai/codex \
         npm:@google/gemini-cli && \
     mise install && \
+    npm install -g npm@latest && \
+    mise reshim && \
     mise trust ~/.config/mise/config.toml
 
-# Install extra user-specified tools (edit extra-tools.txt to add more)
-COPY extra-tools.txt ./extra-tools.txt
+# Install extra user-specified tools (separate layer for faster rebuilds)
+COPY --chown=${USERNAME}:${USERNAME} extra-tools.txt ./extra-tools.txt
 RUN grep -v '^\s*#' extra-tools.txt | grep -v '^\s*$' | awk '{print $1}' | \
-    xargs -r mise use -g && mise install
+    xargs -r mise use -g && \
+    mise install
+
+# Install Headroom AI (context compression for LLM harnesses)
+RUN mise use -g uv && mise install && \
+    uv tool install "headroom-ai[all]" && mise reshim
 
 # Install Claude Code globally via official installer
 RUN curl -fsSL https://claude.ai/install.sh | bash

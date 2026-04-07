@@ -29,6 +29,14 @@ WHITELIST=(
     pypi.org
     files.pythonhosted.org
 
+    # Hugging Face (ML model downloads for Headroom, etc.)
+    huggingface.co
+    cdn-lfs.hf.co
+    cdn-lfs-us-1.hf.co
+
+    # Headroom Labs (context compression service)
+    headroomlabs.ai
+
     # mise tool manager
     mise.jdx.dev
 )
