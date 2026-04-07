@@ -67,9 +67,8 @@ RUN mise settings set experimental true && \
     mise trust ~/.config/mise/config.toml
 
 # Install extra user-specified tools (edit extra-tools.txt to add more)
-COPY extra-tools.txt ./extra-tools.txt
-RUN chmod a+r extra-tools.txt && \
-    grep -v '^\s*#' extra-tools.txt | grep -v '^\s*$' | awk '{print $1}' | \
+COPY extra-tools.txt /tmp/extra-tools.txt
+RUN grep -v '^\s*#' /tmp/extra-tools.txt | grep -v '^\s*$' | awk '{print $1}' | \
     xargs -r mise use -g && mise install
 
 # Install Claude Code globally via official installer
