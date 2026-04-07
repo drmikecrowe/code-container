@@ -67,15 +67,11 @@ RUN mise settings set experimental true && \
     mise trust ~/.config/mise/config.toml
 
 # Install extra user-specified tools (edit extra-tools.txt to add more)
+# Switch to root for COPY to avoid Podman overlay layer corrupting home dir ownership
+USER root
 COPY extra-tools.txt /tmp/extra-tools.txt
-RUN echo "=== id ===" && id && \
-    echo "=== home dir ===" && ls -la ~ && \
-    echo "=== mise binary ===" && ls -la ~/.local/bin/mise && \
-    echo "=== mise shims ===" && ls -la ~/.local/share/mise/shims/ | head -5 && \
-    echo "=== PATH ===" && echo "$PATH" && \
-    echo "=== which mise ===" && which mise && \
-    echo "=== stat mise ===" && stat $(which mise) && \
-    echo "=== /tmp/extra-tools.txt ===" && ls -la /tmp/extra-tools.txt
+RUN chown ${USERNAME}:${USERNAME} /container/${USERNAME}
+USER ${USERNAME}
 RUN grep -v '^\s*#' /tmp/extra-tools.txt | grep -v '^\s*$' | awk '{print $1}' | \
     xargs -r mise use -g && mise install
 
