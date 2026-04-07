@@ -70,7 +70,7 @@ RUN mise settings set experimental true && \
 # Switch to root for COPY to avoid Podman overlay layer corrupting home dir ownership
 USER root
 COPY extra-tools.txt /tmp/extra-tools.txt
-RUN chown ${USERNAME}:${USERNAME} /container/${USERNAME}
+RUN chown -R ${USERNAME}:${USERNAME} /container/${USERNAME}
 USER ${USERNAME}
 RUN grep -v '^\s*#' /tmp/extra-tools.txt | grep -v '^\s*$' | awk '{print $1}' | \
     xargs -r mise use -g && mise install
