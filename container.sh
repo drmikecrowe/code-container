@@ -179,6 +179,7 @@ Options:
     -r, --remove    Remove the container for this project
     -l, --list      List all Code containers
     --clean         Remove all stopped Code containers
+    --update        Pull latest changes from upstream (git pull)
     --claude        Start Claude (in YOLO mode)
     --zai           Start Claude with Z.AI/GLM models (requires ~/.zai.json)
     --no-firewall   Disable egress firewall (unrestricted network access)
@@ -478,6 +479,13 @@ list_containers() {
     $CONTAINER_RUNTIME ps -a --filter "name=code-" --format "table {{.Names}}\t{{.Status}}\t{{.CreatedAt}}"
 }
 
+# Function to update container.sh from upstream
+update_self() {
+    print_info "Pulling latest changes from origin/main..."
+    git -C "$SCRIPT_DIR" pull --ff-only origin main
+    print_success "Update complete. Run 'container --build' if the Dockerfile changed."
+}
+
 # Function to clean up stopped containers
 clean_containers() {
     print_info "Removing all stopped Code containers..."
@@ -502,6 +510,7 @@ LIST_FLAG=false
 CLEAN_FLAG=false
 CLAUDE_FLAG=false
 ZAI_FLAG=false
+UPDATE_FLAG=false
 PROJECT_PATH=""
 
 while [[ $# -gt 0 ]]; do
@@ -541,6 +550,10 @@ while [[ $# -gt 0 ]]; do
             NO_FIREWALL=true
             shift
             ;;
+        --update)
+            UPDATE_FLAG=true
+            shift
+            ;;
         *)
             if [ -z "$PROJECT_PATH" ]; then
                 PROJECT_PATH="$1"
@@ -554,6 +567,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Handle flags
+if [ "$UPDATE_FLAG" = true ]; then
+    update_self
+    exit 0
+fi
+
 if [ "$LIST_FLAG" = true ]; then
     list_containers
     exit 0
