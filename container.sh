@@ -608,7 +608,7 @@ if [ "$REBUILD_FLAG" = true ]; then
     fi
     if image_exists; then
         print_info "Removing existing image: ${IMAGE_NAME}:${IMAGE_TAG}"
-        $CONTAINER_RUNTIME image rm "${IMAGE_NAME}:${IMAGE_TAG}"
+        $CONTAINER_RUNTIME image rm --force "${IMAGE_NAME}:${IMAGE_TAG}"
     fi
     build_image
     exit 0
