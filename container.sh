@@ -175,6 +175,7 @@ Arguments:
 Options:
     -h, --help      Show this help message
     -b, --build     Force rebuild the container image
+    --rebuild       Remove current container and rebuild image
     -s, --stop      Stop the container for this project
     -r, --remove    Remove the container for this project
     -l, --list      List all Code containers
@@ -504,6 +505,7 @@ clean_containers() {
 
 # Parse command line arguments
 BUILD_FLAG=false
+REBUILD_FLAG=false
 STOP_FLAG=false
 REMOVE_FLAG=false
 LIST_FLAG=false
@@ -520,6 +522,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -b|--build)
             BUILD_FLAG=true
+            shift
+            ;;
+        --rebuild)
+            REBUILD_FLAG=true
             shift
             ;;
         -s|--stop)
@@ -592,6 +598,14 @@ PROJECT_PATH=$(cd "$PROJECT_PATH" 2>/dev/null && pwd || echo "$PROJECT_PATH")
 
 # Handle operations
 if [ "$BUILD_FLAG" = true ]; then
+    build_image
+    exit 0
+fi
+
+if [ "$REBUILD_FLAG" = true ]; then
+    if container_exists "$(generate_container_name "$PROJECT_PATH")"; then
+        remove_container "$PROJECT_PATH"
+    fi
     build_image
     exit 0
 fi
