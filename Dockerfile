@@ -68,6 +68,14 @@ RUN mise settings set experimental true && \
 
 # Install extra user-specified tools (edit extra-tools.txt to add more)
 COPY extra-tools.txt /tmp/extra-tools.txt
+RUN echo "=== id ===" && id && \
+    echo "=== home dir ===" && ls -la ~ && \
+    echo "=== mise binary ===" && ls -la ~/.local/bin/mise && \
+    echo "=== mise shims ===" && ls -la ~/.local/share/mise/shims/ | head -5 && \
+    echo "=== PATH ===" && echo "$PATH" && \
+    echo "=== which mise ===" && which mise && \
+    echo "=== stat mise ===" && stat $(which mise) && \
+    echo "=== /tmp/extra-tools.txt ===" && ls -la /tmp/extra-tools.txt
 RUN grep -v '^\s*#' /tmp/extra-tools.txt | grep -v '^\s*$' | awk '{print $1}' | \
     xargs -r mise use -g && mise install
 
