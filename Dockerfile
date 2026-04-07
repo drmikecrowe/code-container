@@ -67,7 +67,7 @@ RUN mise settings set experimental true && \
     mise trust ~/.config/mise/config.toml
 
 # Install extra user-specified tools (edit extra-tools.txt to add more)
-COPY --chown=${USERNAME}:${USERNAME} extra-tools.txt ./extra-tools.txt
+COPY extra-tools.txt ./extra-tools.txt
 RUN grep -v '^\s*#' extra-tools.txt | grep -v '^\s*$' | awk '{print $1}' | \
     xargs -r mise use -g && mise install
 
