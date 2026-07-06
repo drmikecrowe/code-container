@@ -1,0 +1,4 @@
+name: svc-stack
+harness: claude
+recipes: [svc-recipe]
+services: [svc-test]

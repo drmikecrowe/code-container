@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../../../schemas/recipe.schema.json
+# Recipe: openbrain-example — TEMPLATE for a remote, url-based Streamable-HTTP MCP server.
+#
+# This is the third MCP shape: a network-native server referenced by a DIRECT URL, with NO
+# `command` (not a stdio child like `time`) and NO `service` (not a local sidecar like `ping`).
+# hatago proxies the remote server purely by URL; the harness only sees hatago's single endpoint.
+# Use this shape for any MCP server that already runs somewhere reachable — a hosted function, a
+# SaaS endpoint, or your own box.
+#
+# It is modelled on OB1 (OpenBrain), an MCP server deployed as a Supabase edge function. The URL
+# below is a PLACEHOLDER. To run it for real, copy this recipe into your user-overlay catalog
+# (~/.config/harnessed/catalog/recipes/<name>/) and substitute your endpoint + key. See
+# docs/guides/recipe-authoring.md "Worked example 4" for the full local-overlay workflow.
+#
+# Transport: `http` (Streamable HTTP). SSE is deprecated and rejected by the build.
+#
+# Networking: a remote https URL is used AS-IS. A server running on the HOST (e.g.
+# http://localhost:8787/mcp) is NOT reachable as `localhost` from inside the pod — rewrite it to
+# http://host.containers.internal:8787/mcp (the same host-gateway address the `service:` resolver
+# emits). A remote URL like the one below needs no rewrite.
+#
+# Auth / secrets: use `url_env` to keep the key out of the profile on disk. Set the full URL
+# (including the ?key=… query param) in your ~/.config/harnessed/.env.schema as an op:// ref,
+# e.g.:  OB1_URL=op(op://Private/OpenBrain/url)
+# The launcher resolves the ref via varlock and injects it into the container as OB1_URL. hatago
+# substitutes ${OB1_URL} at runtime — the profile file on disk never contains the real URL/key.
+# To use a literal URL without secrets management, replace `url_env` with `url:` instead.
+name: openbrain-example
+description: Template — a remote, url-based Streamable-HTTP MCP server (modelled on OB1/OpenBrain).
+
+mcp:
+  servers:
+    - name: openbrain-example
+      url_env: OB1_URL
+      transport: http

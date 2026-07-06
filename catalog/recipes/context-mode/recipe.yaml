@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=../../../schemas/recipe.schema.json
+# Recipe: context-mode — the project-scoped persist spike (T3).
+#
+# The MINIMAL real recipe that exercises the just-landed persist feature (T4a). It is NOT a full
+# indexing engine: it ships one standalone skill that writes a per-project context log under
+# ~/.context-mode, and declares that folder as project-scoped persist so the notes survive a
+# `harnessed --fresh` (fresh-container) launch. The point is to prove persist end-to-end with the
+# smallest real capability.
+name: context-mode
+description: Project-scoped context-notes spike — a skill that persists notes under ~/.context-mode.
+
+# --- File-extension layer (Claude-canonical) ---
+# A STANDALONE skill dir. The assembler fans it into .claude/skills/context-mode and the capability
+# oracle picks it up by leaf name (no expect: block needed — it's not Dockerfile-delivered). The
+# skill is what actually writes to ~/.context-mode, giving persist something to carry across launches.
+skills:
+  - path: skills/context-mode
+
+# --- Persist layer (T4a) ---
+# scope: workspace — keyed by the exact launch path (per-worktree). Notes in project A never
+# reach project B.  location: host — harnessed owns the dir at
+# $XDG_DATA_HOME/harnessed/persist/context-mode/<workspace_hash>/.context-mode/ and mounts it
+# rw at ~/.context-mode inside the pod so the skill's writes survive `--fresh` relaunches.
+persist:
+  - name: .context-mode
+    scope: workspace
+    location: host

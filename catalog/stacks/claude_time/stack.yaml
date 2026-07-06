@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../../schemas/stack.schema.json
+# Stack: claude_time — minimal tracer (one agent + one recipe).
+# Naming: <agent>_<recipe>… (claude + time).
+name: claude_time
+harness: claude
+recipes: [time]
+services: []

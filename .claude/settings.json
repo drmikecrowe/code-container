@@ -1,0 +1,19 @@
+{
+  "fileSuggestion": {
+    "command": ".claude/file-suggestion.sh",
+    "type": "command"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "bd prime --hook-json",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ]
+  }
+}
